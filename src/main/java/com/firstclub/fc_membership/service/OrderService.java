@@ -4,8 +4,10 @@ import com.firstclub.fc_membership.dto.request.PlaceOrderRequest;
 import com.firstclub.fc_membership.dto.response.OrderResponse;
 import com.firstclub.fc_membership.entity.Order;
 import com.firstclub.fc_membership.entity.User;
+import com.firstclub.fc_membership.enums.MembershipStatus;
 import com.firstclub.fc_membership.exception.ResourceNotFoundException;
 import com.firstclub.fc_membership.repository.OrderRepository;
+import com.firstclub.fc_membership.repository.UserMembershipRepository;
 import com.firstclub.fc_membership.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,8 @@ public class OrderService {
     private final UserRepository userRepository;
     private final TierEvaluationService tierEvaluationService;
     private final BenefitApplicationService benefitApplicationService;
+    private final UserMembershipRepository membershipRepository;
+
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request) {
@@ -47,11 +51,14 @@ public class OrderService {
 
         // Check tier upgrade
         String updatedTier = null;
-        try {
-            var membership = tierEvaluationService.evaluateAndUpdateTier(user.getId());
-            updatedTier = membership.getTier().getTierType().name();
-        } catch (Exception e) {
-            log.debug("Tier evaluation skipped for user {}: {}", user.getId(), e.getMessage());
+        if (membershipRepository.existsByUserIdAndStatus(
+                user.getId(), MembershipStatus.ACTIVE)) {
+            try {
+                var membership = tierEvaluationService.evaluateAndUpdateTier(user.getId());
+                updatedTier = membership.getTier().getTierType().name();
+            } catch (Exception e) {
+                log.debug("Tier evaluation failed for user {}: {}", user.getId(), e.getMessage());
+            }
         }
 
         // Build response with benefit breakdown — NOT toResponse()
