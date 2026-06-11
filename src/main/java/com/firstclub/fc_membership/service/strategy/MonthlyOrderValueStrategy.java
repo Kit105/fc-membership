@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.firstclub.fc_membership.entity.TierCriteria;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -19,20 +21,22 @@ public class MonthlyOrderValueStrategy implements TierEligibilityStrategy {
 
     @Override
     public boolean isEligible(Long userId, TierType targetTier) {
-        LocalDateTime startOfMonth = LocalDateTime.now()
-                .withDayOfMonth(1)
-                .withHour(0).withMinute(0).withSecond(0).withNano(0);
-
-        BigDecimal monthlySpend = orderRepository.sumOrderValueSince(userId, startOfMonth);
-
         return tierRepository.findByTierType(targetTier)
-                .map(tier -> tier.getCriteriaList().stream()
-                        .filter(c -> c.getMinMonthlyOrderValue() != null)
-                        .anyMatch(c -> {
-                            log.debug("MonthlyValue check — user={}, spent={}, required={}",
-                                    userId, monthlySpend, c.getMinMonthlyOrderValue());
-                            return monthlySpend.compareTo(c.getMinMonthlyOrderValue()) >= 0;
-                        }))
+                .map(tier -> {
+                    List<TierCriteria> applicable = tier.getCriteriaList().stream()
+                            .filter(c -> c.getMinMonthlyOrderValue() != null)
+                            .toList();
+                    // No monthly value criterion for this tier → doesn't block it
+                    if (applicable.isEmpty()) return true;
+                    LocalDateTime startOfMonth = LocalDateTime.now()
+                            .withDayOfMonth(1)
+                            .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    BigDecimal monthlySpend = orderRepository.sumOrderValueSince(userId, startOfMonth);
+                    log.debug("MonthlyValue — user={}, spent={}, required={}",
+                            userId, monthlySpend, applicable.get(0).getMinMonthlyOrderValue());
+                    return applicable.stream()
+                            .anyMatch(c -> monthlySpend.compareTo(c.getMinMonthlyOrderValue()) >= 0);
+                })
                 .orElse(false);
     }
 

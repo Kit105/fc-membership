@@ -6,6 +6,8 @@ import com.firstclub.fc_membership.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import com.firstclub.fc_membership.entity.TierCriteria;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -19,13 +21,17 @@ public class CohortBasedStrategy implements TierEligibilityStrategy {
     public boolean isEligible(Long userId, TierType targetTier) {
         return userRepository.findById(userId)
                 .flatMap(user -> tierRepository.findByTierType(targetTier)
-                        .map(tier -> tier.getCriteriaList().stream()
-                                .filter(c -> c.getRequiredCohort() != null)
-                                .anyMatch(c -> {
-                                    log.debug("Cohort check — user={}, cohort={}, required={}",
-                                            userId, user.getCohort(), c.getRequiredCohort());
-                                    return user.getCohort() == c.getRequiredCohort();
-                                })))
+                        .map(tier -> {
+                            List<TierCriteria> applicable = tier.getCriteriaList().stream()
+                                    .filter(c -> c.getRequiredCohort() != null)
+                                    .toList();
+                            // No cohort criterion for this tier → doesn't block it
+                            if (applicable.isEmpty()) return true;
+                            log.debug("Cohort — user={}, cohort={}, required={}",
+                                    userId, user.getCohort(), applicable.get(0).getRequiredCohort());
+                            return applicable.stream()
+                                    .anyMatch(c -> user.getCohort() == c.getRequiredCohort());
+                        }))
                 .orElse(false);
     }
 
