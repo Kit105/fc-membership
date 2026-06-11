@@ -16,7 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.*;
-
+import com.firstclub.fc_membership.dto.request.PlaceOrderRequest;
+import com.firstclub.fc_membership.dto.response.OrderResponse;
+import java.math.BigDecimal;
 @SpringBootTest
 @Transactional
 class MembershipLifecycleIntegrationTest {
@@ -25,6 +27,7 @@ class MembershipLifecycleIntegrationTest {
     @Autowired private MembershipService membershipService;
     @Autowired private MembershipPlanRepository planRepository;
     @Autowired private MembershipTierRepository tierRepository;
+    @Autowired private OrderService orderService;
 
     private Long userId;
     private Long planId;
@@ -96,6 +99,43 @@ class MembershipLifecycleIntegrationTest {
 
         assertThatThrownBy(() -> membershipService.getCurrentMembership(userId))
                 .isInstanceOf(com.firstclub.fc_membership.exception.MembershipException.class);
+    }
+
+    @Test
+    void subscribeWithoutTierIdShouldAutoAssignBestEligibleTier() {
+        // Don't pass tierId — system should auto-assign
+        SubscribeMembershipRequest req = new SubscribeMembershipRequest();
+        req.setPlanId(planId);
+        // tierId intentionally omitted
+
+        MembershipResponse result = membershipService.subscribe(userId, req);
+
+        // New user with no orders → should land on SILVER automatically
+        assertThat(result.getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+        assertThat(result.getTier().getTierType()).isEqualTo(TierType.SILVER);
+    }
+
+    @Test
+    void placingEnoughOrdersShouldAutoUpgradeTierThroughOrderService() {
+        // Subscribe first
+        subscribe();
+
+        // Place 5 orders through OrderService (the real production path)
+        PlaceOrderRequest orderReq = new PlaceOrderRequest();
+        orderReq.setUserId(userId);
+        orderReq.setTotalAmount(new BigDecimal("200"));
+
+        OrderResponse lastOrder = null;
+        for (int i = 0; i < 5; i++) {
+            lastOrder = orderService.placeOrder(orderReq);
+        }
+
+        // The 5th order response should show the tier was upgraded
+        assertThat(lastOrder.getUpdatedTier()).isEqualTo(TierType.GOLD.name());
+
+        // And the membership itself should reflect the new tier
+        MembershipResponse current = membershipService.getCurrentMembership(userId);
+        assertThat(current.getTier().getTierType()).isEqualTo(TierType.GOLD);
     }
 
     private MembershipResponse subscribe() {
