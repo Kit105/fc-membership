@@ -35,23 +35,23 @@ public class DataInitializer implements CommandLineRunner {
         planRepository.saveAll(List.of(
                 MembershipPlan.builder()
                         .planType(PlanType.MONTHLY)
-                        .price(new BigDecimal("199.00"))
+                        .price(new BigDecimal("249.00"))
                         .durationDays(30)
                         .description("Flexible month-to-month. Cancel anytime.")
                         .active(true).build(),
 
                 MembershipPlan.builder()
                         .planType(PlanType.QUARTERLY)
-                        .price(new BigDecimal("499.00"))
+                        .price(new BigDecimal("699.00"))
                         .durationDays(90)
-                        .description("Quarterly plan — save 16% vs monthly.")
+                        .description("Quarterly plan — save 7% vs monthly.")
                         .active(true).build(),
 
                 MembershipPlan.builder()
                         .planType(PlanType.YEARLY)
-                        .price(new BigDecimal("1499.00"))
+                        .price(new BigDecimal("2499.00"))
                         .durationDays(365)
-                        .description("Best value — save 37% vs monthly.")
+                        .description("Best value — save 17% vs monthly.")
                         .active(true).build()
         ));
         log.info("Seeded 3 plans");
@@ -125,9 +125,9 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.count() > 0) return;
 
         userRepository.saveAll(List.of(
-                User.builder().name("Arjun Sharma").email("arjun@firstclub.com").cohort(CohortType.REGULAR).build(),
-                User.builder().name("Priya Mehta").email("priya@firstclub.com").cohort(CohortType.PREMIUM_COHORT).build(),
-                User.builder().name("Ravi Patel").email("ravi@firstclub.com").cohort(CohortType.CORPORATE).build()
+                User.builder().name("Michael Scott").email("michael@dundermifflin.com").cohort(CohortType.REGULAR).build(),
+                User.builder().name("Daenerys Targaryen").email("danny@targaryen.com").cohort(CohortType.PREMIUM_COHORT).build(),
+                User.builder().name("Kakashi Hatake").email("kakashi@konoha.com").cohort(CohortType.CORPORATE).build()
         ));
         log.info("Seeded 3 sample users — IDs will be 1, 2, 3");
     }
