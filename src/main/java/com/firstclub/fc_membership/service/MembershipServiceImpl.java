@@ -10,11 +10,16 @@ import com.firstclub.fc_membership.exception.MembershipException;
 import com.firstclub.fc_membership.exception.ResourceNotFoundException;
 import com.firstclub.fc_membership.mapper.MembershipMapper;
 import com.firstclub.fc_membership.repository.*;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +35,7 @@ public class MembershipServiceImpl implements MembershipService {
     private final MembershipTierRepository tierRepository;
     private final UserMembershipRepository membershipRepository;
     private final MembershipMapper mapper;
+    private final TierEvaluationService tierEvaluationService;
 
     @Override
     @Transactional
@@ -43,11 +49,21 @@ public class MembershipServiceImpl implements MembershipService {
         MembershipPlan plan = planRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new ResourceNotFoundException("MembershipPlan", request.getPlanId()));
 
-        MembershipTier tier = tierRepository.findById(request.getTierId())
-                .orElseThrow(() -> new ResourceNotFoundException("MembershipTier", request.getTierId()));
-
         if (!plan.isActive()) {
             throw new MembershipException("This plan is no longer available", HttpStatus.BAD_REQUEST);
+        }
+
+        // If tierId is provided use it, otherwise auto-assign the best eligible tier
+        MembershipTier tier;
+        if (request.getTierId() != null) {
+            tier = tierRepository.findById(request.getTierId())
+                    .orElseThrow(() -> new ResourceNotFoundException("MembershipTier", request.getTierId()));
+            log.info("User {} manually selected tier {}", userId, tier.getTierType());
+        } else {
+            TierType bestTier = tierEvaluationService.determineBestEligibleTier(userId);
+            tier = tierRepository.findByTierType(bestTier)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tier not found: " + bestTier));
+            log.info("User {} auto-assigned tier {}", userId, bestTier);
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -84,6 +100,11 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     @Override
+    @Retryable(
+            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100, multiplier = 2)
+    )
     @Transactional
     public MembershipResponse upgradeTier(Long userId) {
         UserMembership membership = getActiveMembershipOrThrow(userId);
@@ -102,6 +123,11 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     @Override
+    @Retryable(
+            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100, multiplier = 2)
+    )
     @Transactional
     public MembershipResponse downgradeTier(Long userId) {
         UserMembership membership = getActiveMembershipOrThrow(userId);
@@ -120,6 +146,11 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     @Override
+    @Retryable(
+            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 100, multiplier = 2)
+    )
     @Transactional
     public MembershipResponse cancelMembership(Long userId) {
         UserMembership membership = getActiveMembershipOrThrow(userId);
