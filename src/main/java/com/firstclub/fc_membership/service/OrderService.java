@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.firstclub.fc_membership.service.BenefitApplicationService;
 
 @Slf4j
 @Service
@@ -22,6 +23,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final TierEvaluationService tierEvaluationService;
+    private final BenefitApplicationService benefitApplicationService;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request) {
@@ -39,8 +41,11 @@ public class OrderService {
         log.info("Order {} placed: user={}, amount={}",
                 saved.getId(), user.getId(), saved.getTotalAmount());
 
-        // After every order, check if the user earned a higher tier.
-        // If they have no active membership this is silently skipped.
+        // Apply tier benefits
+        BenefitApplicationService.AppliedBenefits applied =
+                benefitApplicationService.applyBenefits(user.getId(), request.getTotalAmount());
+
+        // Check tier upgrade
         String updatedTier = null;
         try {
             var membership = tierEvaluationService.evaluateAndUpdateTier(user.getId());
@@ -49,8 +54,22 @@ public class OrderService {
             log.debug("Tier evaluation skipped for user {}: {}", user.getId(), e.getMessage());
         }
 
-        return toResponse(saved, user, updatedTier);
+        // Build response with benefit breakdown — NOT toResponse()
+        return OrderResponse.builder()
+                .id(saved.getId())
+                .userId(user.getId())
+                .userName(user.getName())
+                .originalAmount(applied.getOriginalAmount())
+                .discountApplied(applied.getDiscountApplied())
+                .deliveryCharge(applied.getDeliveryCharge())
+                .finalAmount(applied.getFinalAmount())
+                .description(saved.getDescription())
+                .createdAt(saved.getCreatedAt())
+                .appliedBenefits(applied.getAppliedBenefits())
+                .updatedTier(updatedTier)
+                .build();
     }
+
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getUserOrders(Long userId) {
@@ -66,7 +85,7 @@ public class OrderService {
                 .id(order.getId())
                 .userId(user.getId())
                 .userName(user.getName())
-                .totalAmount(order.getTotalAmount())
+                .originalAmount(order.getTotalAmount())
                 .description(order.getDescription())
                 .createdAt(order.getCreatedAt())
                 .updatedTier(updatedTier)
