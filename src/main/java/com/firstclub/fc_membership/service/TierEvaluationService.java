@@ -62,7 +62,7 @@ public class TierEvaluationService {
 
         for (TierType candidate : highToLow) {
             boolean eligible = ordered.stream()
-                    .anyMatch(s -> s.isEligible(userId, candidate));
+                    .allMatch(s -> s.isEligible(userId, candidate));
             if (eligible) {
                 log.debug("User {} qualifies for {}", userId, candidate);
                 return candidate;

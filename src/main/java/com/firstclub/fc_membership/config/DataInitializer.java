@@ -78,9 +78,7 @@ public class DataInitializer implements CommandLineRunner {
                 benefit(silver, BenefitType.FREE_DELIVERY,       "true", "Free delivery on orders above ₹500"),
                 benefit(silver, BenefitType.DISCOUNT_PERCENTAGE, "5",    "5% discount on selected items")
         ));
-        silver.getCriteriaList().add(
-                TierCriteria.builder().tier(silver).minOrders(0).build()
-        );
+        // No criteria = all strategies return true vacuously = everyone qualifies
         return silver;
     }
 
@@ -95,10 +93,10 @@ public class DataInitializer implements CommandLineRunner {
                 benefit(gold, BenefitType.DISCOUNT_PERCENTAGE, "10",   "10% discount on all items"),
                 benefit(gold, BenefitType.EARLY_SALE_ACCESS,   "true", "24-hour early access to sales")
         ));
-        gold.getCriteriaList().addAll(List.of(
-                TierCriteria.builder().tier(gold).minOrders(5).build(),
-                TierCriteria.builder().tier(gold).minMonthlyOrderValue(new BigDecimal("2000.00")).build()
-        ));
+        // Single criterion: 5+ total orders
+        gold.getCriteriaList().add(
+                TierCriteria.builder().tier(gold).minOrders(5).build()
+        );
         return gold;
     }
 
@@ -115,10 +113,10 @@ public class DataInitializer implements CommandLineRunner {
                 benefit(platinum, BenefitType.EXCLUSIVE_COUPONS,   "500",   "₹500 coupon every month"),
                 benefit(platinum, BenefitType.EXCLUSIVE_ACCESS,    "true",  "Early access to product launches")
         ));
+        // AND: user needs BOTH 10+ orders AND ₹5000+ monthly spend
         platinum.getCriteriaList().addAll(List.of(
-                TierCriteria.builder().tier(platinum).minOrders(15).build(),
-                TierCriteria.builder().tier(platinum).minMonthlyOrderValue(new BigDecimal("5000.00")).build(),
-                TierCriteria.builder().tier(platinum).requiredCohort(CohortType.PREMIUM_COHORT).build()
+                TierCriteria.builder().tier(platinum).minOrders(10).build(),
+                TierCriteria.builder().tier(platinum).minMonthlyOrderValue(new BigDecimal("5000.00")).build()
         ));
         return platinum;
     }

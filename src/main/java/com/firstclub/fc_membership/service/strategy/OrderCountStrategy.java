@@ -6,6 +6,8 @@ import com.firstclub.fc_membership.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import com.firstclub.fc_membership.entity.TierCriteria;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -18,14 +20,17 @@ public class OrderCountStrategy implements TierEligibilityStrategy {
     @Override
     public boolean isEligible(Long userId, TierType targetTier) {
         return tierRepository.findByTierType(targetTier)
-                .map(tier -> tier.getCriteriaList().stream()
-                        .filter(c -> c.getMinOrders() != null)
-                        .anyMatch(c -> {
-                            long orderCount = orderRepository.countByUserId(userId);
-                            log.debug("OrderCount check — user={}, orders={}, required={}",
-                                    userId, orderCount, c.getMinOrders());
-                            return orderCount >= c.getMinOrders();
-                        }))
+                .map(tier -> {
+                    List<TierCriteria> applicable = tier.getCriteriaList().stream()
+                            .filter(c -> c.getMinOrders() != null)
+                            .toList();
+                    // No minOrders criterion for this tier → doesn't block it
+                    if (applicable.isEmpty()) return true;
+                    long orderCount = orderRepository.countByUserId(userId);
+                    log.debug("OrderCount — user={}, orders={}, required={}",
+                            userId, orderCount, applicable.get(0).getMinOrders());
+                    return applicable.stream().anyMatch(c -> orderCount >= c.getMinOrders());
+                })
                 .orElse(false);
     }
 
