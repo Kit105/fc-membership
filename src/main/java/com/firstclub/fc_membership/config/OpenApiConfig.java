@@ -28,9 +28,6 @@ public class OpenApiConfig {
                                 6. GET  /api/v1/users/{userId}/membership — check status
                                 """)
                         .version("v1.0")
-                        .contact(new Contact().name("FirstClub Engineering")))
-                .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local")
-                ));
+                        .contact(new Contact().name("FirstClub Engineering")));
     }
 }
