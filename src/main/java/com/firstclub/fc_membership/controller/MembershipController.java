@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.firstclub.fc_membership.dto.response.EligibleTierResponse;
 
 @RestController
 @RequestMapping("/api/v1/users/{userId}/membership")
@@ -47,6 +48,14 @@ public class MembershipController {
             @PathVariable Long userId) {
         return ResponseEntity.ok(ApiResponse.success(
                 membershipService.getMembershipHistory(userId)));
+    }
+
+    @GetMapping("/eligible-tier")
+    @Operation(summary = "Check what tier the user currently qualifies for — read only, no changes made")
+    public ResponseEntity<ApiResponse<EligibleTierResponse>> getEligibleTier(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                tierEvaluationService.getEligibleTierInfo(userId)));
     }
 
     @PutMapping("/upgrade")
