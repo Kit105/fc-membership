@@ -198,29 +198,29 @@ The app seeds all reference data on every startup automatically.
 
 **Plans**
 
-| ID | Type | Price | Duration |
-|---|---|-------|---|
-| 1 | MONTHLY | ₹299  | 30 days |
-| 2 | QUARTERLY | ₹699  | 90 days |
-| 3 | YEARLY | ₹2499 | 365 days |
+| ID | Type | Price | Duration | Description |
+|---|---|---|---|---|
+| 1 | MONTHLY | ₹249 | 30 days | Flexible month-to-month. Cancel anytime. |
+| 2 | QUARTERLY | ₹699 | 90 days | Quarterly plan — save 7% vs monthly. |
+| 3 | YEARLY | ₹2499 | 365 days | Best value — save 17% vs monthly. |
 
 **Tiers**
 
 | ID | Tier | Criteria | Key Benefits |
 |---|---|---|---|
 | 1 | SILVER | Everyone qualifies | Free delivery (orders > ₹500), 5% discount |
-| 2 | GOLD | ≥ 5 total orders | Free delivery, 10% discount, early sale access |
-| 3 | PLATINUM | ≥ 10 orders **AND** ≥ ₹5000 monthly spend | Free delivery, 15% discount, ₹500 coupon, priority support |
+| 2 | GOLD | ≥ 5 total orders | Free delivery, 10% discount, 24-hour early access to sales |
+| 3 | PLATINUM | ≥ 10 orders **AND** ≥ ₹5000 monthly spend | Free delivery, 15% discount, ₹500 monthly coupon, 24/7 priority support, early access to product launches |
 
 **Users**
 
 | ID | Name | Cohort |
 |---|---|---|
-| 1 | Arjun Sharma | REGULAR |
-| 2 | Priya Mehta | PREMIUM_COHORT |
-| 3 | Ravi Patel | CORPORATE |
+| 1 | Michael Scott | REGULAR |
+| 2 | Daenerys Targaryen | PREMIUM_COHORT |
+| 3 | Kakashi Hatake | CORPORATE |
 
----
+___
 
 ## Demo Walkthrough
 
